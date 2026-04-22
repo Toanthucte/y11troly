@@ -291,7 +291,9 @@ export async function fetchVisitsFromSheet(
   token: string,
   spreadsheetId: string,
 ): Promise<VisitData[]> {
-  const data = await sheetsGet(token, spreadsheetId, SHEET_TAB)
+  // Use explicit A1 notation. Passing only sheet name can be interpreted as
+  // a named range in some cases and may return 404 "Requested entity not found".
+  const data = await sheetsGet(token, spreadsheetId, `${SHEET_TAB}!A1:ZZ`)
   const rows = data.values ?? []
   if (rows.length < 2) return []
 
