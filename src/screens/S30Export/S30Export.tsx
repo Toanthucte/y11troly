@@ -1,8 +1,12 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useAppStore } from '../../state/store'
 import { SIDE_INPUT_KEYS } from '../../data/standards'
 import type { MetricKey } from '../../data/standards'
 import type { VisitData, MetricsSet } from '../../types'
+import {
+  loadSheetsConfig,
+  appendVisitToSheet,
+} from '../../services/sheets/sheetsService'
 import styles from './S30Export.module.css'
 
 function isSideComplete(
@@ -85,10 +89,16 @@ export default function S30Export() {
     right,
     footLeft,
     footRight,
+    sheetsToken,
     buildVisitData,
+    addVisitToHistory,
     goToFirstIncomplete,
     setScreen,
   } = useAppStore()
+
+  const [sheetsWriteStatus, setSheetsWriteStatus] = useState<
+    'idle' | 'writing' | 'ok' | 'err'
+  >('idle')
 
   const visit = useMemo(
     () => buildVisitData(),
@@ -103,8 +113,9 @@ export default function S30Export() {
 
   const canExport = Boolean(visit && metricsReady)
 
-  function handleExportCsv() {
+  async function handleExportCsv() {
     if (!visit || !metricsReady) return
+    addVisitToHistory(visit)
     const row = buildFlatExportRow(visit)
     const csv = toCsv(row)
     const stamp = visit.visitTimeIso
@@ -118,6 +129,18 @@ export default function S30Export() {
       csv,
       'text/csv;charset=utf-8',
     )
+
+    // Auto-ghi lên Google Sheets nếu đã kết nối
+    const cfg = loadSheetsConfig()
+    if (sheetsToken && cfg?.spreadsheetId) {
+      setSheetsWriteStatus('writing')
+      try {
+        await appendVisitToSheet(sheetsToken, cfg.spreadsheetId, row)
+        setSheetsWriteStatus('ok')
+      } catch {
+        setSheetsWriteStatus('err')
+      }
+    }
   }
 
   function handleBackForCompletion() {
@@ -180,6 +203,19 @@ export default function S30Export() {
         >
           Xuất CSV ngay
         </button>
+        {sheetsWriteStatus === 'writing' && (
+          <p className={styles.note}>Đang ghi lên Google Sheets…</p>
+        )}
+        {sheetsWriteStatus === 'ok' && (
+          <p className={styles.note} style={{ color: '#86efac' }}>
+            ✓ Đã ghi lên Google Sheets
+          </p>
+        )}
+        {sheetsWriteStatus === 'err' && (
+          <p className={styles.note} style={{ color: '#fca5a5' }}>
+            ⚠ Không ghi được lên Sheets (CSV đã lưu thành công)
+          </p>
+        )}
         {canExport && (
           <button className={styles.secondaryBtn} onClick={handleBackForReview}>
             Về Khối B (xem lại)

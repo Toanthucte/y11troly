@@ -30,6 +30,7 @@ interface AppState {
   patient: PatientProfile | null
   visitTimeText: string
   visitTimeIso: string
+  historyVisits: VisitData[]
   left: MetricsSet
   right: MetricsSet
   footLeft: MetricsSet
@@ -48,8 +49,15 @@ interface AppState {
   ) => void
   nextField: () => void
   prevField: () => void
+  sheetsToken: string | null
+  sheetsStatus: 'idle' | 'loading' | 'connected' | 'error'
+
   goToFirstIncomplete: () => void
   buildVisitData: () => VisitData | null
+  addVisitToHistory: (visit: VisitData) => void
+  setSheetsToken: (token: string | null) => void
+  setSheetsStatus: (status: 'idle' | 'loading' | 'connected' | 'error') => void
+  mergeSheetVisits: (visits: VisitData[]) => void
   resetAll: () => void
 }
 
@@ -58,6 +66,9 @@ export const useAppStore = create<AppState>((set, get) => ({
   patient: null,
   visitTimeText: '',
   visitTimeIso: '',
+  historyVisits: [],
+  sheetsToken: null,
+  sheetsStatus: 'idle',
   left: { ...EMPTY_METRICS },
   right: { ...EMPTY_METRICS },
   footLeft: { ...EMPTY_METRICS },
@@ -162,6 +173,42 @@ export const useAppStore = create<AppState>((set, get) => ({
         SIDE_INPUT_KEYS.footRight,
       ),
     }
+  },
+
+  addVisitToHistory: (visit) => {
+    set((state) => {
+      const existingIndex = state.historyVisits.findIndex(
+        (item) =>
+          item.visitTimeIso === visit.visitTimeIso &&
+          item.patient.fullName === visit.patient.fullName &&
+          item.patient.phone === visit.patient.phone,
+      )
+
+      if (existingIndex >= 0) {
+        const next = [...state.historyVisits]
+        next[existingIndex] = visit
+        return { historyVisits: next }
+      }
+
+      return { historyVisits: [visit, ...state.historyVisits] }
+    })
+  },
+
+  setSheetsToken: (token) => set({ sheetsToken: token }),
+
+  setSheetsStatus: (status) => set({ sheetsStatus: status }),
+
+  mergeSheetVisits: (incoming) => {
+    set((state) => {
+      const map = new Map<string, VisitData>()
+      // Local visits take precedence: add sheets first, then overwrite with local
+      for (const v of incoming) map.set(v.visitId, v)
+      for (const v of state.historyVisits) map.set(v.visitId, v)
+      const merged = Array.from(map.values()).sort((a, b) =>
+        b.visitTimeIso.localeCompare(a.visitTimeIso),
+      )
+      return { historyVisits: merged }
+    })
   },
 
   resetAll: () =>

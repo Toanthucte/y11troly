@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import dayjs from 'dayjs'
 import { useAppStore } from '../../state/store'
 import type { InputSide } from '../../state/store'
@@ -78,6 +78,20 @@ export default function S20KhoiB() {
   } = useAppStore()
 
   const [inputVal, setInputVal] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
+  const shouldFocusNextFieldRef = useRef(false)
+
+  useEffect(() => {
+    if (!shouldFocusNextFieldRef.current) return
+
+    const el = inputRef.current
+    if (el) {
+      el.focus()
+      el.select()
+    }
+
+    shouldFocusNextFieldRef.current = false
+  }, [inputSide, inputFieldIndex])
 
   if (!patient) return null
 
@@ -138,6 +152,7 @@ export default function S20KhoiB() {
       return
     }
 
+    shouldFocusNextFieldRef.current = true
     setInputVal('')
     nextField()
   }
@@ -237,12 +252,12 @@ export default function S20KhoiB() {
           <div className={styles.fieldUnit}>{FIELD_UNITS[currentKey]}</div>
 
           <input
+            ref={inputRef}
             className={styles.metricInput}
             value={inputVal}
             onChange={(e) => setInputVal(e.target.value)}
             inputMode="decimal"
             placeholder={`Nhập ${FIELD_LABELS[currentKey]}`}
-            autoFocus
             onKeyDown={(e) => {
               if (e.key === 'Enter') handleNext()
             }}
