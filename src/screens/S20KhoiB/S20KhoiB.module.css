@@ -1,0 +1,180 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 12px 80px;
+  max-width: 640px;
+  margin: 0 auto;
+  overflow-x: hidden;
+}
+
+.alertBanner {
+  border: 1px solid;
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.patientBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  background: var(--bg-block);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+}
+
+.patientName {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.patientAge {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+/* Dòng thời gian */
+.timeRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 36px;
+}
+
+.timeBtn {
+  background: #1e1b4b;
+  border: 1px solid #4f46e5;
+  color: #a5b4fc;
+  border-radius: 20px;
+  padding: 6px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+
+.timeBtn:hover {
+  background: #2e2a6b;
+}
+
+.timeText {
+  font-size: 14px;
+  font-weight: 700;
+  color: #a5b4fc;
+  letter-spacing: 0.04em;
+}
+
+/* Khối nhập liệu */
+.inputBlock {
+  background: var(--bg-block-alt);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.inputHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.inputSideLabel {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #a5b4fc;
+}
+
+.stepIndicator {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  background: var(--bg-block);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 2px 8px;
+}
+
+.fieldLabel {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.fieldUnit {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-top: -6px;
+}
+
+.metricInput {
+  width: 100%;
+  background: var(--bg-main);
+  border: 1px solid #4f46e5;
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-size: 28px;
+  font-weight: 700;
+  padding: 14px 16px;
+  text-align: center;
+}
+
+.metricInput:focus {
+  outline: none;
+  border-color: #818cf8;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.3);
+}
+
+.navBtns {
+  display: flex;
+  gap: 10px;
+}
+
+.backBtn {
+  flex: 0 0 auto;
+  padding: 12px 18px;
+  background: var(--bg-block);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+.nextBtn {
+  flex: 1;
+  padding: 12px;
+  background: linear-gradient(135deg, #4f46e5, #6366f1);
+  border-radius: var(--radius-sm);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  box-shadow: 0 2px 12px rgba(99, 102, 241, 0.3);
+}
+
+.doneBlock {
+  background: #052e16;
+  border: 1px solid #16a34a;
+  border-radius: var(--radius);
+  padding: 16px;
+  color: #4ade80;
+  font-weight: 600;
+  text-align: center;
+  font-size: 15px;
+}
+
+.doneActions {
+  margin-top: 10px;
+}
+
+.doneBtn {
+  background: #14532d;
+  border: 1px solid #22c55e;
+  border-radius: var(--radius-sm);
+  color: #dcfce7;
+  font-weight: 700;
+  padding: 10px 14px;
+}
