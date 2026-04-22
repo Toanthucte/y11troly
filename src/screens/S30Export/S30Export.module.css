@@ -53,6 +53,41 @@
   padding: 12px;
 }
 
+.sheetsInfo {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  background: #2d2212;
+  border: 1px solid #ca8a04;
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+  color: #fde68a;
+  font-size: 0.85rem;
+}
+
+.sheetsInfoOk {
+  margin-top: 10px;
+  background: #052e16;
+  border: 1px solid #16a34a;
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+  color: #86efac;
+  font-size: 0.85rem;
+}
+
+.sheetsInfoBtn {
+  background: #ca8a04;
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 5px 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
 .list {
   margin: 8px 0 12px;
   padding-left: 16px;

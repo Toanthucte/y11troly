@@ -8,6 +8,7 @@ import { getStandardByAge } from '../../data/standards'
 import {
   loadSheetsConfig,
   appendVisitToSheet,
+  requestAccessToken,
 } from '../../services/sheets/sheetsService'
 import {
   exportElementToPdf,
@@ -102,6 +103,9 @@ export default function S30Export() {
     footLeft,
     footRight,
     sheetsToken,
+    sheetsStatus,
+    setSheetsToken,
+    setSheetsStatus,
     buildVisitData,
     addVisitToHistory,
     goToFirstIncomplete,
@@ -133,6 +137,23 @@ export default function S30Export() {
 
   const canExport = Boolean(visit && metricsReady)
 
+  async function getOrRefreshToken(): Promise<string | null> {
+    if (sheetsToken) return sheetsToken
+    const cfg = loadSheetsConfig()
+    if (!cfg?.clientId) return null
+    try {
+      setSheetsStatus('loading')
+      const token = await requestAccessToken(cfg.clientId)
+      setSheetsToken(token)
+      setSheetsStatus('connected')
+      return token
+    } catch {
+      setSheetsStatus('error')
+      setSheetsToken(null)
+      return null
+    }
+  }
+
   async function handleExportCsv() {
     if (!visit || !metricsReady) return
     addVisitToHistory(visit)
@@ -145,16 +166,37 @@ export default function S30Export() {
       'text/csv;charset=utf-8',
     )
 
-    // Auto-ghi lên Google Sheets nếu đã kết nối
+    // Auto-ghi lên Google Sheets — tự lấy lại token nếu hết hạn
     const cfg = loadSheetsConfig()
-    if (sheetsToken && cfg?.spreadsheetId) {
-      setSheetsWriteStatus('writing')
-      try {
-        await appendVisitToSheet(sheetsToken, cfg.spreadsheetId, row)
-        setSheetsWriteStatus('ok')
-      } catch {
-        setSheetsWriteStatus('err')
+    if (!cfg?.spreadsheetId) return // chưa cấu hình Sheets
+
+    const token = await getOrRefreshToken()
+    if (!token) {
+      setSheetsWriteStatus('err')
+      return
+    }
+
+    setSheetsWriteStatus('writing')
+    try {
+      await appendVisitToSheet(token, cfg.spreadsheetId, row)
+      setSheetsWriteStatus('ok')
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : ''
+      if (msg.includes('401') || msg.includes('UNAUTHENTICATED')) {
+        // Token hết hạn, lấy mới rồi thử lại 1 lần
+        setSheetsToken(null)
+        const freshToken = await getOrRefreshToken()
+        if (freshToken) {
+          try {
+            await appendVisitToSheet(freshToken, cfg.spreadsheetId, row)
+            setSheetsWriteStatus('ok')
+            return
+          } catch {
+            // fall through
+          }
+        }
       }
+      setSheetsWriteStatus('err')
     }
   }
 
@@ -249,6 +291,30 @@ export default function S30Export() {
           </button>
         </div>
       )}
+
+      {/* ── Sheets status ── */}
+      {(() => {
+        const cfg = loadSheetsConfig()
+        if (!cfg?.spreadsheetId) return (
+          <div className={styles.sheetsInfo}>
+            <span>⚠ Chưa cấu hình Google Sheets.</span>
+            <button className={styles.sheetsInfoBtn} onClick={() => setScreen('history')}>
+              Vào Lịch sử để cấu hình
+            </button>
+          </div>
+        )
+        if (sheetsStatus === 'connected' || sheetsToken) return (
+          <div className={styles.sheetsInfoOk}>✓ Sheets đã kết nối — sẽ ghi sau khi xuất CSV</div>
+        )
+        return (
+          <div className={styles.sheetsInfo}>
+            <span>Sheets chưa kết nối (token hết hạn).</span>
+            <button className={styles.sheetsInfoBtn} onClick={() => setScreen('history')}>
+              Vào Lịch sử → Kết nối lại
+            </button>
+          </div>
+        )
+      })()}
 
       <div className={styles.actions}>
         <button
