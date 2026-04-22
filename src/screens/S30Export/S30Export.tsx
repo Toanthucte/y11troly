@@ -1,10 +1,15 @@
 import { useMemo } from 'react'
 import { useAppStore } from '../../state/store'
-import type { MetricsSet, VisitData } from '../../types'
+import { SIDE_INPUT_KEYS } from '../../data/standards'
+import type { MetricKey } from '../../data/standards'
+import type { VisitData, MetricsSet } from '../../types'
 import styles from './S30Export.module.css'
 
-function isMetricsComplete(metrics: MetricsSet): boolean {
-  return Object.values(metrics).every((v) => v !== null)
+function isSideComplete(
+  metrics: MetricsSet,
+  keys: readonly MetricKey[],
+): boolean {
+  return keys.every((key) => metrics[key] !== null)
 }
 
 function toCsv(data: Record<string, string | number>): string {
@@ -37,36 +42,21 @@ function buildFlatExportRow(visit: VisitData): Record<string, string | number> {
     left_nt: visit.left.nt ?? '',
     left_dh: visit.left.dh ?? '',
     left_temp_forehead: visit.left.tempForehead ?? '',
-    left_temp_hand: visit.left.tempHand ?? '',
-    left_temp_foot: visit.left.tempFoot ?? '',
+    left_temp_little_finger: visit.left.tempLittleFingerLeft ?? '',
+    left_temp_little_toe: visit.left.tempLittleToeLeft ?? '',
     left_ph: visit.left.ph ?? '',
 
     right_tt: visit.right.tt ?? '',
     right_ttr: visit.right.ttr ?? '',
     right_nt: visit.right.nt ?? '',
-    right_dh: visit.right.dh ?? '',
-    right_temp_forehead: visit.right.tempForehead ?? '',
-    right_temp_hand: visit.right.tempHand ?? '',
-    right_temp_foot: visit.right.tempFoot ?? '',
-    right_ph: visit.right.ph ?? '',
 
     foot_left_tt: visit.footLeft.tt ?? '',
     foot_left_ttr: visit.footLeft.ttr ?? '',
     foot_left_nt: visit.footLeft.nt ?? '',
-    foot_left_dh: visit.footLeft.dh ?? '',
-    foot_left_temp_forehead: visit.footLeft.tempForehead ?? '',
-    foot_left_temp_hand: visit.footLeft.tempHand ?? '',
-    foot_left_temp_foot: visit.footLeft.tempFoot ?? '',
-    foot_left_ph: visit.footLeft.ph ?? '',
 
     foot_right_tt: visit.footRight.tt ?? '',
     foot_right_ttr: visit.footRight.ttr ?? '',
     foot_right_nt: visit.footRight.nt ?? '',
-    foot_right_dh: visit.footRight.dh ?? '',
-    foot_right_temp_forehead: visit.footRight.tempForehead ?? '',
-    foot_right_temp_hand: visit.footRight.tempHand ?? '',
-    foot_right_temp_foot: visit.footRight.tempFoot ?? '',
-    foot_right_ph: visit.footRight.ph ?? '',
 
     status_left_overall: visit.statusLeft.overall,
     status_right_overall: visit.statusRight.overall,
@@ -106,10 +96,10 @@ export default function S30Export() {
   )
 
   const metricsReady =
-    isMetricsComplete(left) &&
-    isMetricsComplete(right) &&
-    isMetricsComplete(footLeft) &&
-    isMetricsComplete(footRight)
+    isSideComplete(left, SIDE_INPUT_KEYS.left) &&
+    isSideComplete(right, SIDE_INPUT_KEYS.right) &&
+    isSideComplete(footLeft, SIDE_INPUT_KEYS.footLeft) &&
+    isSideComplete(footRight, SIDE_INPUT_KEYS.footRight)
 
   const canExport = Boolean(visit && metricsReady)
 
@@ -160,7 +150,7 @@ export default function S30Export() {
         <div className={styles.row}>
           <span className={styles.label}>Bộ chỉ số</span>
           <span className={styles.value}>
-            {metricsReady ? 'Đủ 4 bộ (32 trường)' : 'Chưa đủ dữ liệu'}
+            {metricsReady ? 'Đủ 4 bộ (17 trường)' : 'Chưa đủ dữ liệu'}
           </span>
         </div>
       </div>
@@ -171,7 +161,7 @@ export default function S30Export() {
           <ul className={styles.list}>
             <li>Đã có hồ sơ bệnh nhân từ Khối A</li>
             <li>Đã bấm nút Thời gian ở Khối B</li>
-            <li>Đã nhập đủ 4 bộ chỉ số: Tt, Tp, Ct, Cp</li>
+            <li>Đã nhập đủ 17 trường: Tt (8), Tp (3), Ct (3), Cp (3)</li>
           </ul>
           <button
             className={styles.secondaryBtn}

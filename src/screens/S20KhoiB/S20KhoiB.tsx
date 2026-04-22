@@ -1,25 +1,25 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import dayjs from 'dayjs'
 import { useAppStore } from '../../state/store'
 import type { InputSide } from '../../state/store'
-import { getStandardByAge } from '../../data/standards'
+import { getStandardByAge, SIDE_INPUT_KEYS } from '../../data/standards'
 import {
-  METRICS_KEYS,
   getLevelColor,
   getLevelLabel,
   evaluateMetrics,
 } from '../../utils/alertRules'
 import MetricsTable from '../../components/MetricsTable/MetricsTable'
 import type { MetricKey } from '../../data/standards'
+import type { MetricsSet } from '../../types'
 import styles from './S20KhoiB.module.css'
 
 const SIDE_ORDER: InputSide[] = ['left', 'right', 'footLeft', 'footRight']
 
 const SIDE_ICON: Record<InputSide, string> = {
-  left: '🖐 Tay Trái',
-  right: '✋ Tay Phải',
-  footLeft: '🦶 Chân Trái',
-  footRight: '🦶 Chân Phải',
+  left: '🖐 Tt',
+  right: '✋ Tp',
+  footLeft: '🦶 Ct',
+  footRight: '🦶 Cp',
 }
 
 const NEXT_SIDE_LABEL: Record<InputSide, string> = {
@@ -34,10 +34,10 @@ const FIELD_LABELS: Record<MetricKey, string> = {
   ttr: 'Tâm trương (TTr)',
   nt: 'Nhịp tim (NT)',
   dh: 'Đường huyết (ĐH)',
-  tempForehead: 'Nhiệt Trán',
-  tempHand: 'Nhiệt Tay',
-  tempFoot: 'Nhiệt Chân',
-  ph: 'pH',
+  tempForehead: 'Nhiệt Trán (NTr)',
+  tempLittleFingerLeft: 'Nhiệt Ngón Tay Út (T) - NTÚ(T)',
+  tempLittleToeLeft: 'Nhiệt Ngón Chân Út (T) - NCÚ(T)',
+  ph: 'Nồng độ axit (pH)',
 }
 
 const FIELD_UNITS: Record<MetricKey, string> = {
@@ -46,9 +46,18 @@ const FIELD_UNITS: Record<MetricKey, string> = {
   nt: 'lần/ph',
   dh: 'mmol/L',
   tempForehead: '°C',
-  tempHand: '°C',
-  tempFoot: '°C',
+  tempLittleFingerLeft: '°C',
+  tempLittleToeLeft: '°C',
   ph: '',
+}
+
+const LEFT_LABEL_OVERRIDES: Partial<Record<MetricKey, string>> = {
+  tempLittleFingerLeft: 'NTÚ(T)',
+  tempLittleToeLeft: 'NCÚ(T)',
+}
+
+function isSideComplete(metrics: MetricsSet, keys: readonly MetricKey[]) {
+  return keys.every((key) => metrics[key] !== null)
 }
 
 export default function S20KhoiB() {
@@ -73,15 +82,32 @@ export default function S20KhoiB() {
   if (!patient) return null
 
   const std = getStandardByAge(patient.age)
-  const currentKey = METRICS_KEYS[inputFieldIndex]
-  const isLastField = inputFieldIndex === 7
-  const isLastSide = inputSide === 'footRight'
-  const allDone = isLastField && isLastSide
+  const currentSideKeys = SIDE_INPUT_KEYS[inputSide]
+  const safeFieldIndex = Math.min(inputFieldIndex, currentSideKeys.length - 1)
+  const currentKey = currentSideKeys[safeFieldIndex]
+  const isLastField = safeFieldIndex === currentSideKeys.length - 1
 
-  const statusLeft = evaluateMetrics(left, std)
-  const statusRight = evaluateMetrics(right, std)
-  const statusFootLeft = evaluateMetrics(footLeft, std)
-  const statusFootRight = evaluateMetrics(footRight, std)
+  const statusLeft = evaluateMetrics(left, std, SIDE_INPUT_KEYS.left)
+  const statusRight = evaluateMetrics(right, std, SIDE_INPUT_KEYS.right)
+  const statusFootLeft = evaluateMetrics(
+    footLeft,
+    std,
+    SIDE_INPUT_KEYS.footLeft,
+  )
+  const statusFootRight = evaluateMetrics(
+    footRight,
+    std,
+    SIDE_INPUT_KEYS.footRight,
+  )
+
+  const allDone = useMemo(() => {
+    return (
+      isSideComplete(left, SIDE_INPUT_KEYS.left) &&
+      isSideComplete(right, SIDE_INPUT_KEYS.right) &&
+      isSideComplete(footLeft, SIDE_INPUT_KEYS.footLeft) &&
+      isSideComplete(footRight, SIDE_INPUT_KEYS.footRight)
+    )
+  }, [left, right, footLeft, footRight])
 
   const allStatuses = [statusLeft, statusRight, statusFootLeft, statusFootRight]
   const hasAlert = allStatuses.some((s) => s.overall === 'alert')
@@ -97,9 +123,21 @@ export default function S20KhoiB() {
 
   function handleNext() {
     const num = parseFloat(inputVal.replace(',', '.'))
+    const currentMetrics =
+      inputSide === 'left'
+        ? left
+        : inputSide === 'right'
+          ? right
+          : inputSide === 'footLeft'
+            ? footLeft
+            : footRight
+
     if (!isNaN(num)) {
       setMetricValue(inputSide, currentKey, num)
+    } else if (currentMetrics[currentKey] === null) {
+      return
     }
+
     setInputVal('')
     nextField()
   }
@@ -111,7 +149,6 @@ export default function S20KhoiB() {
 
   return (
     <div className={styles.container}>
-      {/* Cảnh báo tổng */}
       {(hasAlert || hasWatch) && (
         <div
           className={styles.alertBanner}
@@ -126,7 +163,6 @@ export default function S20KhoiB() {
         </div>
       )}
 
-      {/* Thanh thông tin cố định */}
       <div className={styles.patientBar}>
         <span className={styles.patientName}>{patient.fullName}</span>
         <span className={styles.patientAge}>
@@ -134,10 +170,8 @@ export default function S20KhoiB() {
         </span>
       </div>
 
-      {/* Bảng tiêu chuẩn */}
-      <MetricsTable std={std} label="Tiêu chuẩn theo lứa tuổi" />
+      <MetricsTable std={std} label="Tiêu chuẩn theo lứa tuổi" columns={4} />
 
-      {/* Dòng thời gian */}
       <div className={styles.timeRow}>
         <button className={styles.timeBtn} onClick={handleSetTime}>
           ⏱ Thời gian
@@ -147,48 +181,52 @@ export default function S20KhoiB() {
         )}
       </div>
 
-      {/* Bảng Tay Trái */}
       <MetricsTable
         std={std}
         values={left}
         status={statusLeft}
         label="Tay Trái (Tt)"
+        columns={4}
+        labelOverrides={LEFT_LABEL_OVERRIDES}
         highlight
       />
 
-      {/* Bảng Tay Phải */}
       <MetricsTable
         std={std}
         values={right}
         status={statusRight}
+        keys={SIDE_INPUT_KEYS.right}
+        columns={3}
         label="Tay Phải (Tp)"
         highlight
       />
 
-      {/* Bảng Chân Trái */}
       <MetricsTable
         std={std}
         values={footLeft}
         status={statusFootLeft}
+        keys={SIDE_INPUT_KEYS.footLeft}
+        columns={3}
         label="Chân Trái (Ct)"
         highlight
       />
 
-      {/* Bảng Chân Phải */}
       <MetricsTable
         std={std}
         values={footRight}
         status={statusFootRight}
+        keys={SIDE_INPUT_KEYS.footRight}
+        columns={3}
         label="Chân Phải (Cp)"
         highlight
       />
 
-      {/* Khối nhập liệu */}
       {!allDone && (
         <div className={styles.inputBlock}>
           <div className={styles.inputHeader}>
             <span className={styles.inputSideLabel}>
-              {SIDE_ICON[inputSide]} · Trường {inputFieldIndex + 1}/8
+              {SIDE_ICON[inputSide]} · Trường {safeFieldIndex + 1}/
+              {currentSideKeys.length}
             </span>
             <span className={styles.stepIndicator}>
               Bộ {SIDE_ORDER.indexOf(inputSide) + 1}/4
@@ -223,7 +261,10 @@ export default function S20KhoiB() {
 
       {allDone && (
         <div className={styles.doneBlock}>
-          <span>✓ Đã nhập đủ cả 4 bộ. Sẵn sàng kết xuất.</span>
+          <span>
+            ✓ Đã nhập đủ 17 trường (Tt 8 + Tp 3 + Ct 3 + Cp 3). Sẵn sàng kết
+            xuất.
+          </span>
           <div className={styles.doneActions}>
             <button
               className={styles.doneBtn}

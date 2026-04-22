@@ -7,6 +7,7 @@ export type Screen =
   | 'settings'
 
 export type Sex = 'male' | 'female' | 'other'
+export type MeasurementSide = 'left' | 'right' | 'footLeft' | 'footRight'
 
 export interface PatientProfile {
   fullName: string
@@ -23,8 +24,8 @@ export interface MetricsSet {
   nt: number | null
   dh: number | null
   tempForehead: number | null
-  tempHand: number | null
-  tempFoot: number | null
+  tempLittleFingerLeft: number | null
+  tempLittleToeLeft: number | null
   ph: number | null
 }
 
@@ -34,8 +35,8 @@ export interface MetricsStatus {
   nt: AlertLevel
   dh: AlertLevel
   tempForehead: AlertLevel
-  tempHand: AlertLevel
-  tempFoot: AlertLevel
+  tempLittleFingerLeft: AlertLevel
+  tempLittleToeLeft: AlertLevel
   ph: AlertLevel
   overall: AlertLevel
 }
@@ -69,7 +70,7 @@ export interface AgeGroupStandards {
   nt: StandardRange
   dh: StandardRange
   tempForehead: StandardRange
-  tempHand: StandardRange
-  tempFoot: StandardRange
+  tempLittleFingerLeft: StandardRange
+  tempLittleToeLeft: StandardRange
   ph: StandardRange
 }

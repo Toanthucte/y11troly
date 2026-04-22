@@ -10,6 +10,9 @@ interface Props {
   status?: MetricsStatus
   label?: string
   highlight?: boolean
+  keys?: readonly MetricKey[]
+  columns?: number
+  labelOverrides?: Partial<Record<MetricKey, string>>
 }
 
 export default function MetricsTable({
@@ -18,19 +21,26 @@ export default function MetricsTable({
   status,
   label,
   highlight,
+  keys,
+  columns,
+  labelOverrides,
 }: Props) {
+  const renderKeys = keys ?? METRICS_KEYS
+  const cols = columns ?? renderKeys.length
+
   return (
     <div className={`${styles.wrap} ${highlight ? styles.highlight : ''}`}>
       {label && <div className={styles.tableLabel}>{label}</div>}
-      <div className={styles.table}>
-        {METRICS_KEYS.map((key: MetricKey) => {
+      <div className={styles.table} style={{ ['--cols' as string]: cols }}>
+        {renderKeys.map((key: MetricKey) => {
           const range = std[key]
           const val = values?.[key]
           const lvl = status?.[key]
           const color = lvl ? getLevelColor(lvl) : undefined
+          const displayLabel = labelOverrides?.[key] ?? range.label
           return (
             <div key={key} className={styles.cell}>
-              <div className={styles.colLabel}>{range.label}</div>
+              <div className={styles.colLabel}>{displayLabel}</div>
               <div className={styles.colUnit}>{range.unit}</div>
               <div className={styles.colStd}>
                 {range.min}–{range.max}

@@ -1,7 +1,13 @@
 import { create } from 'zustand'
-import type { Screen, PatientProfile, MetricsSet, VisitData } from '../types'
+import type {
+  Screen,
+  PatientProfile,
+  MetricsSet,
+  VisitData,
+  MeasurementSide,
+} from '../types'
 import { getStandardByAge } from '../data/standards'
-import { METRICS_KEYS } from '../data/standards'
+import { SIDE_INPUT_KEYS } from '../data/standards'
 import { evaluateMetrics } from '../utils/alertRules'
 
 const EMPTY_METRICS: MetricsSet = {
@@ -10,12 +16,12 @@ const EMPTY_METRICS: MetricsSet = {
   nt: null,
   dh: null,
   tempForehead: null,
-  tempHand: null,
-  tempFoot: null,
+  tempLittleFingerLeft: null,
+  tempLittleToeLeft: null,
   ph: null,
 }
 
-export type InputSide = 'left' | 'right' | 'footLeft' | 'footRight'
+export type InputSide = MeasurementSide
 
 const SIDE_ORDER: InputSide[] = ['left', 'right', 'footLeft', 'footRight']
 
@@ -73,7 +79,8 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   nextField: () => {
     const { inputFieldIndex, inputSide } = get()
-    if (inputFieldIndex < 7) {
+    const sideFields = SIDE_INPUT_KEYS[inputSide]
+    if (inputFieldIndex < sideFields.length - 1) {
       set({ inputFieldIndex: inputFieldIndex + 1 })
     } else {
       const idx = SIDE_ORDER.indexOf(inputSide)
@@ -90,7 +97,11 @@ export const useAppStore = create<AppState>((set, get) => ({
     } else {
       const idx = SIDE_ORDER.indexOf(inputSide)
       if (idx > 0) {
-        set({ inputSide: SIDE_ORDER[idx - 1], inputFieldIndex: 7 })
+        const prevSide = SIDE_ORDER[idx - 1]
+        set({
+          inputSide: prevSide,
+          inputFieldIndex: SIDE_INPUT_KEYS[prevSide].length - 1,
+        })
       }
     }
   },
@@ -105,8 +116,9 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
 
     for (const side of SIDE_ORDER) {
-      for (let i = 0; i < 8; i += 1) {
-        const key = METRICS_KEYS[i]
+      const sideFields = SIDE_INPUT_KEYS[side]
+      for (let i = 0; i < sideFields.length; i += 1) {
+        const key = sideFields[i]
         if (metricsBySide[side][key] === null) {
           set({ inputSide: side, inputFieldIndex: i })
           return
@@ -114,7 +126,10 @@ export const useAppStore = create<AppState>((set, get) => ({
       }
     }
 
-    set({ inputSide: 'footRight', inputFieldIndex: 7 })
+    set({
+      inputSide: 'footRight',
+      inputFieldIndex: SIDE_INPUT_KEYS.footRight.length - 1,
+    })
   },
 
   buildVisitData: () => {
@@ -138,10 +153,14 @@ export const useAppStore = create<AppState>((set, get) => ({
       right,
       footLeft,
       footRight,
-      statusLeft: evaluateMetrics(left, std),
-      statusRight: evaluateMetrics(right, std),
-      statusFootLeft: evaluateMetrics(footLeft, std),
-      statusFootRight: evaluateMetrics(footRight, std),
+      statusLeft: evaluateMetrics(left, std, SIDE_INPUT_KEYS.left),
+      statusRight: evaluateMetrics(right, std, SIDE_INPUT_KEYS.right),
+      statusFootLeft: evaluateMetrics(footLeft, std, SIDE_INPUT_KEYS.footLeft),
+      statusFootRight: evaluateMetrics(
+        footRight,
+        std,
+        SIDE_INPUT_KEYS.footRight,
+      ),
     }
   },
 
