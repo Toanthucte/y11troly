@@ -63,6 +63,7 @@
   margin-top: 16px;
   display: flex;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
 .primaryBtn,
@@ -91,4 +92,73 @@
   margin-top: 10px;
   color: var(--color-text-muted);
   font-size: 13px;
+}
+
+.reportSheet {
+  margin-top: 16px;
+  background: #ffffff;
+  color: #0f172a;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.reportHeader {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.reportMeta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+.reportBlock {
+  margin-bottom: 10px;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+@media (max-width: 700px) {
+  .reportMeta {
+    grid-template-columns: 1fr;
+  }
+}
+
+:global(body.print-export-report) {
+  background: #fff;
+}
+
+@media print {
+  :global(body.print-export-report) * {
+    visibility: hidden;
+  }
+
+  :global(body.print-export-report) .reportSheet,
+  :global(body.print-export-report) .reportSheet * {
+    visibility: visible;
+  }
+
+  :global(body.print-export-report) .reportSheet {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 210mm;
+    margin: 0;
+    border: none;
+    border-radius: 0;
+    padding: 10mm;
+    box-sizing: border-box;
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 8mm;
+  }
 }

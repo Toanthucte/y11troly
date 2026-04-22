@@ -1,12 +1,19 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useAppStore } from '../../state/store'
 import { SIDE_INPUT_KEYS } from '../../data/standards'
 import type { MetricKey } from '../../data/standards'
 import type { VisitData, MetricsSet } from '../../types'
+import MetricsTable from '../../components/MetricsTable/MetricsTable'
+import { getStandardByAge } from '../../data/standards'
 import {
   loadSheetsConfig,
   appendVisitToSheet,
 } from '../../services/sheets/sheetsService'
+import {
+  exportElementToPdf,
+  exportElementToPng,
+  makeExportStamp,
+} from '../../services/export/fileExport'
 import styles from './S30Export.module.css'
 
 function isSideComplete(
@@ -81,6 +88,11 @@ function downloadTextFile(filename: string, content: string, mimeType: string) {
   URL.revokeObjectURL(url)
 }
 
+const LEFT_LABEL_OVERRIDES: Partial<Record<MetricKey, string>> = {
+  tempLittleFingerLeft: 'NTÚ(T)',
+  tempLittleToeLeft: 'NCÚ(T)',
+}
+
 export default function S30Export() {
   const {
     patient,
@@ -99,11 +111,19 @@ export default function S30Export() {
   const [sheetsWriteStatus, setSheetsWriteStatus] = useState<
     'idle' | 'writing' | 'ok' | 'err'
   >('idle')
+  const [fileExportStatus, setFileExportStatus] = useState<
+    'idle' | 'working' | 'ok' | 'err'
+  >('idle')
+  const reportRef = useRef<HTMLDivElement>(null)
 
   const visit = useMemo(
     () => buildVisitData(),
     [buildVisitData, patient, visitTimeText, left, right, footLeft, footRight],
   )
+  const std = useMemo(() => {
+    if (!visit) return null
+    return getStandardByAge(visit.patient.age)
+  }, [visit])
 
   const metricsReady =
     isSideComplete(left, SIDE_INPUT_KEYS.left) &&
@@ -118,12 +138,7 @@ export default function S30Export() {
     addVisitToHistory(visit)
     const row = buildFlatExportRow(visit)
     const csv = toCsv(row)
-    const stamp = visit.visitTimeIso
-      ? new Date(visit.visitTimeIso)
-          .toISOString()
-          .replace(/[-:]/g, '')
-          .slice(0, 13)
-      : Date.now().toString()
+    const stamp = makeExportStamp(visit.visitTimeIso)
     downloadTextFile(
       `Y11_${visit.patient.fullName.replaceAll(' ', '_')}_${stamp}.csv`,
       csv,
@@ -141,6 +156,46 @@ export default function S30Export() {
         setSheetsWriteStatus('err')
       }
     }
+  }
+
+  async function handleExportPng() {
+    if (!visit || !reportRef.current) return
+    setFileExportStatus('working')
+    try {
+      const stamp = makeExportStamp(visit.visitTimeIso)
+      await exportElementToPng(
+        reportRef.current,
+        `Y11_${visit.patient.fullName.replaceAll(' ', '_')}_${stamp}.png`,
+        300,
+      )
+      setFileExportStatus('ok')
+    } catch {
+      setFileExportStatus('err')
+    }
+  }
+
+  async function handleExportPdf() {
+    if (!visit || !reportRef.current) return
+    setFileExportStatus('working')
+    try {
+      const stamp = makeExportStamp(visit.visitTimeIso)
+      await exportElementToPdf(
+        reportRef.current,
+        `Y11_${visit.patient.fullName.replaceAll(' ', '_')}_${stamp}.pdf`,
+      )
+      setFileExportStatus('ok')
+    } catch {
+      setFileExportStatus('err')
+    }
+  }
+
+  function handlePrintA4() {
+    if (!canExport) return
+    document.body.classList.add('print-export-report')
+    window.print()
+    setTimeout(() => {
+      document.body.classList.remove('print-export-report')
+    }, 300)
   }
 
   function handleBackForCompletion() {
@@ -216,6 +271,27 @@ export default function S30Export() {
             ⚠ Không ghi được lên Sheets (CSV đã lưu thành công)
           </p>
         )}
+        <button
+          className={styles.secondaryBtn}
+          onClick={handleExportPdf}
+          disabled={!canExport}
+        >
+          Xuất PDF
+        </button>
+        <button
+          className={styles.secondaryBtn}
+          onClick={handleExportPng}
+          disabled={!canExport}
+        >
+          Xuất PNG (300 DPI)
+        </button>
+        <button
+          className={styles.secondaryBtn}
+          onClick={handlePrintA4}
+          disabled={!canExport}
+        >
+          In A4
+        </button>
         {canExport && (
           <button className={styles.secondaryBtn} onClick={handleBackForReview}>
             Về Khối B (xem lại)
@@ -223,8 +299,87 @@ export default function S30Export() {
         )}
       </div>
 
+      {fileExportStatus === 'working' && (
+        <p className={styles.note}>Đang tạo file PDF/PNG…</p>
+      )}
+      {fileExportStatus === 'ok' && (
+        <p className={styles.note} style={{ color: '#86efac' }}>
+          ✓ Đã xuất file thành công
+        </p>
+      )}
+      {fileExportStatus === 'err' && (
+        <p className={styles.note} style={{ color: '#fca5a5' }}>
+          ⚠ Xuất PDF/PNG thất bại
+        </p>
+      )}
+
+      {visit && std && (
+        <div ref={reportRef} className={styles.reportSheet}>
+          <div className={styles.reportHeader}>BÁO CÁO Y11</div>
+          <div className={styles.reportMeta}>
+            <div>Bệnh nhân: {visit.patient.fullName}</div>
+            <div>Tuổi: {visit.patient.age}</div>
+            <div>Giới tính: {visit.patient.sex}</div>
+            <div>Điện thoại: {visit.patient.phone}</div>
+            <div>Thời gian: {visit.visitTimeText}</div>
+          </div>
+
+          <div className={styles.reportBlock}>
+            <MetricsTable std={std} label="Tiêu chuẩn" columns={4} />
+          </div>
+
+          <div className={styles.reportBlock}>
+            <MetricsTable
+              std={std}
+              values={visit.left}
+              status={visit.statusLeft}
+              label="Tay Trái (Tt)"
+              columns={4}
+              labelOverrides={LEFT_LABEL_OVERRIDES}
+              highlight
+            />
+          </div>
+
+          <div className={styles.reportBlock}>
+            <MetricsTable
+              std={std}
+              values={visit.right}
+              status={visit.statusRight}
+              keys={SIDE_INPUT_KEYS.right}
+              columns={3}
+              label="Tay Phải (Tp)"
+              highlight
+            />
+          </div>
+
+          <div className={styles.reportBlock}>
+            <MetricsTable
+              std={std}
+              values={visit.footLeft}
+              status={visit.statusFootLeft}
+              keys={SIDE_INPUT_KEYS.footLeft}
+              columns={3}
+              label="Chân Trái (Ct)"
+              highlight
+            />
+          </div>
+
+          <div className={styles.reportBlock}>
+            <MetricsTable
+              std={std}
+              values={visit.footRight}
+              status={visit.statusFootRight}
+              keys={SIDE_INPUT_KEYS.footRight}
+              columns={3}
+              label="Chân Phải (Cp)"
+              highlight
+            />
+          </div>
+        </div>
+      )}
+
       <p className={styles.note}>
-        PDF/PNG sẽ là bước tiếp theo trong pipeline export.
+        Đã sẵn sàng pipeline: CSV / PDF / PNG 300 DPI / In A4.
       </p>
     </section>
   )
