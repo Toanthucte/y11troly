@@ -53,7 +53,10 @@ export default function S40History() {
     setSheetsStatus('loading')
     setSheetError('')
     try {
-      saveSheetsConfig({ clientId: clientId.trim(), spreadsheetId: spreadsheetId.trim() })
+      saveSheetsConfig({
+        clientId: clientId.trim(),
+        spreadsheetId: spreadsheetId.trim(),
+      })
       const token = await requestAccessToken(clientId.trim())
       setSheetsToken(token)
       setSheetsStatus('connected')
@@ -177,7 +180,9 @@ export default function S40History() {
               onClick={handleConnect}
               disabled={sheetsStatus === 'loading'}
             >
-              {sheetsStatus === 'loading' ? 'Đang kết nối…' : '🔑 Kết nối Sheets'}
+              {sheetsStatus === 'loading'
+                ? 'Đang kết nối…'
+                : '🔑 Kết nối Sheets'}
             </button>
           ) : (
             <>
@@ -202,16 +207,14 @@ export default function S40History() {
           )}
         </div>
 
-        {sheetError && (
-          <div className={styles.sheetError}>{sheetError}</div>
-        )}
+        {sheetError && <div className={styles.sheetError}>{sheetError}</div>}
       </div>
 
       {/* ── Empty state ── */}
       {displayedVisits.length === 0 && (
         <div className={styles.emptyBox}>
-          Chưa có dữ liệu. Hoàn tất 1 ca đo và bấm &ldquo;Xuất CSV ngay&rdquo; để lưu
-          bản ghi, hoặc bấm &ldquo;Tải từ Sheets&rdquo; nếu đã kết nối.
+          Chưa có dữ liệu. Hoàn tất 1 ca đo và bấm &ldquo;Xuất CSV ngay&rdquo;
+          để lưu bản ghi, hoặc bấm &ldquo;Tải từ Sheets&rdquo; nếu đã kết nối.
         </div>
       )}
 

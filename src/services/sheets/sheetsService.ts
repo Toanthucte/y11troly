@@ -16,10 +16,7 @@ declare global {
           initTokenClient(config: {
             client_id: string
             scope: string
-            callback: (r: {
-              access_token?: string
-              error?: string
-            }) => void
+            callback: (r: { access_token?: string; error?: string }) => void
           }): { requestAccessToken(): void }
         }
       }
@@ -152,10 +149,10 @@ async function sheetsGet(
     headers: { Authorization: `Bearer ${token}` },
   })
   if (!res.ok) {
-    const err = await res.json().catch(() => ({})) as { error?: { message?: string } }
-    throw new Error(
-      err?.error?.message ?? `Sheets API lỗi ${res.status}`,
-    )
+    const err = (await res.json().catch(() => ({}))) as {
+      error?: { message?: string }
+    }
+    throw new Error(err?.error?.message ?? `Sheets API lỗi ${res.status}`)
   }
   return res.json() as Promise<{ values?: string[][] }>
 }
@@ -176,10 +173,10 @@ async function sheetsAppend(
     body: JSON.stringify({ values }),
   })
   if (!res.ok) {
-    const err = await res.json().catch(() => ({})) as { error?: { message?: string } }
-    throw new Error(
-      err?.error?.message ?? `Sheets append lỗi ${res.status}`,
-    )
+    const err = (await res.json().catch(() => ({}))) as {
+      error?: { message?: string }
+    }
+    throw new Error(err?.error?.message ?? `Sheets append lỗi ${res.status}`)
   }
 }
 
@@ -286,11 +283,7 @@ function rowToVisitData(
     statusLeft: evaluateMetrics(left, std, SIDE_INPUT_KEYS.left),
     statusRight: evaluateMetrics(right, std, SIDE_INPUT_KEYS.right),
     statusFootLeft: evaluateMetrics(footLeft, std, SIDE_INPUT_KEYS.footLeft),
-    statusFootRight: evaluateMetrics(
-      footRight,
-      std,
-      SIDE_INPUT_KEYS.footRight,
-    ),
+    statusFootRight: evaluateMetrics(footRight, std, SIDE_INPUT_KEYS.footRight),
   }
 }
 
